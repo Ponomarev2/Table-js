@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body onload="onLoad()">
+  <div class="main">
+    <h1>Список пользователей</h1>
+    <div class="search-form">
+      <input type="text" placeholder="Поиск по имени или e-mail" id="inp" onkeyup="renderTable()">
+      <button id="clean" onclick="cleanFilter()">Очистить фильтр</button>
+    </div>
+    <div class="sorting">Сортировка:
+      <button data-sort="registration_date">Дата регистрации</button>
+      <button data-sort="rating">Рейтинг</button>
+    </div>
+    <table id="table">
+      <thead>
+        <th>Имя пользователя</th>
+        <th>E-mail</th>
+        <th>Дата регистрации</th>
+        <th>Рейтинг</th>
+      </thead>
+      <tbody id="table-body">
+        <tr>
+          <td colspan="4"><i>Загрузка данных...</i></td>
+        </tr>
+      </tbody>
+    </table>
+    <nav aria-label="pagination">
+      Страницы:
+      <ul id="pagination" class="pagination">
+      </ul>
+    </nav>
+  </div>
+  <div id="myModal" class="modal">
+    <div class="modal-content">
+      <p>Вы уверены, что хотите удалить пользователя?</p>
+      <div class="controls">
+        <button class="yes" onclick="delUser2()">Да</button>
+        <button class="no" onclick='document.getElementById("myModal").style.display="none";'>Нет</button>
+      </div>
+    </div>
+  </div>
+</body>
+
+
+<script>
+  const rows = 5;
+  var curPage = 1, data;
+  const table = document.getElementById("table-body");
+  var sortAsc = false, sortCol;
+  var filteredData;
+  var delId;
+
+
+  function onLoad() {
+    document.querySelectorAll('.sorting button').forEach(t => {
+      t.addEventListener('click', sort, false);
+    });
+
+    (async () => {
+      data = await getData();
+      filteredData = data;
+      renderTable();
+      renderPagination();
+    })()
+  }
+
+  function delUser1(id) {
+    document.getElementById("myModal").style.display = "block";
+    delId = id;
+  }
+
+  function delUser2() {
+    document.getElementById("myModal").style.display = "none";
+    data = data.filter((item) => {
+      return item.id != delId
+    });
+    renderTable();
+  }
+
+  function sortId() {
+    data.sort((a, b) => {
+      if (a.id > b.id) return 1;
+      if (a.id < b.id) return -1;
+      return 0;
+    });
+    renderTable();
+  }
+
+  function sort(e) {
+    let thisSort = e.target.dataset.sort;
+    if (sortCol === thisSort) sortAsc = !sortAsc;
+    sortCol = thisSort;
+    data.sort((a, b) => {
+      if (a[sortCol] < b[sortCol]) return sortAsc ? 1 : -1;
+      if (a[sortCol] > b[sortCol]) return sortAsc ? -1 : 1;
+      return 0;
+    });
+    document.getElementById("clean").style.visibility = "visible";
+    renderTable();
+  }
+
+  function changePage(page) {
+    if (curPage === page) { return };
+    curPage = page;
+    renderTable();
+    renderPagination();
+  }
+
+  function cleanFilter() {
+    document.getElementById("inp").value = "";
+    document.getElementById("clean").style.visibility = "hidden";
+    sortId();
+  }
+
+  function renderTable() {
+    let result = '';
+    filteredData = filterUsers();
+    filteredData.filter((row, index) => {
+      let start = (curPage - 1) * rows;
+      let end = curPage * rows;
+      if (index >= start && index < end) return true;
+    }).forEach(c => {
+      result += `<tr>
+      <td>${c.username}</td>
+      <td>${c.email}</td>
+      <td>${new Date(c.registration_date).toLocaleDateString()}</td>
+      <td>${c.rating}</td>
+      <td><button class="del" onclick="delUser1(${c.id})"></button></td>
+      </tr>`;
+    });
+    table.innerHTML = result;
+    renderPagination();
+  }
+
+  function renderPagination() {
+    var ul = document.getElementById("pagination"), li;
+    let res = "";
+    for (let i = 0; i < parseInt(filteredData.length / rows + 0.999); i++) {
+      res += "<li><button onclick='changePage(" + (i + 1) + ")'>" + (i + 1) + "</button></li>";
+    }
+    ul.innerHTML = res;
+    ul.childNodes[curPage - 1].childNodes[0].style.cssText = 'color:white; background-color: #0CB4F1;';
+  }
+
+  async function getData() {
+    let response = await fetch('https://5ebbb8e5f2cfeb001697d05c.mockapi.io/users');
+    let data = await response.json();
+    console.log(data);
+    return data;
+  }
+
+  function filterUsers() {
+    let filter = document.getElementById("inp").value.toLowerCase();
+    if (filter !== '') { document.getElementById("clean").style.visibility = "visible"; }
+    return data.filter(c => {
+      if (filter == '') return true;
+      return (c.username.toLowerCase().indexOf(filter) >= 0 || c.email.toLowerCase().indexOf(filter) >= 0)
+    })
+  }
+
+
+</script>
+
+</html>
