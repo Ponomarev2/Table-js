@@ -31,7 +31,7 @@
         </tr>
       </tbody>
     </table>
-    <nav aria-label="pagination">
+    <nav>
       Страницы:
       <ul id="pagination" class="pagination">
       </ul>
@@ -53,7 +53,9 @@
   const rows = 5;
   var curPage = 1, data;
   const table = document.getElementById("table-body");
-  var sortAsc = false, sortCol;
+  var sortAsc = false;
+  var sortCol = "";
+  var filterCur = "";
   var filteredData;
   var delId;
 
@@ -67,7 +69,6 @@
       data = await getData();
       filteredData = data;
       renderTable();
-      renderPagination();
     })()
   }
 
@@ -110,12 +111,12 @@
     if (curPage === page) { return };
     curPage = page;
     renderTable();
-    renderPagination();
   }
 
   function cleanFilter() {
     document.getElementById("inp").value = "";
     document.getElementById("clean").style.visibility = "hidden";
+    sortCol = "";
     sortId();
   }
 
@@ -142,6 +143,7 @@
   function renderPagination() {
     var ul = document.getElementById("pagination"), li;
     let res = "";
+    console.log(filteredData);
     for (let i = 0; i < parseInt(filteredData.length / rows + 0.999); i++) {
       res += "<li><button onclick='changePage(" + (i + 1) + ")'>" + (i + 1) + "</button></li>";
     }
@@ -158,9 +160,18 @@
 
   function filterUsers() {
     let filter = document.getElementById("inp").value.toLowerCase();
-    if (filter !== '') { document.getElementById("clean").style.visibility = "visible"; }
+    if (filter !== filterCur) {
+      curPage = 1;
+      filterCur = filter;
+    }
+
+    if (filter === '') {
+      if (sortCol === "") { document.getElementById("clean").style.visibility = "hidden"; }
+    } else {
+      document.getElementById("clean").style.visibility = "visible";
+    }
     return data.filter(c => {
-      if (filter == '') return true;
+      if (filter === '') return true;
       return (c.username.toLowerCase().indexOf(filter) >= 0 || c.email.toLowerCase().indexOf(filter) >= 0)
     })
   }
